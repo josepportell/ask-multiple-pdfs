@@ -13,9 +13,13 @@ from langchain.llms import HuggingFaceHub
 def get_pdf_text(pdf_docs):
     text = ""
     for pdf in pdf_docs:
-        pdf_reader = PdfReader(pdf)
-        for page in pdf_reader.pages:
-            text += page.extract_text()
+        try:
+            pdf_reader = PdfReader(pdf)
+            for page in pdf_reader.pages:
+                text += page.extract_text()
+        except PyPDF2.errors.PdfReadError:
+            st.write("Error: No s'ha pogut processar el fitxer PDF. Sembla que no té un format vàlid. Sisplau carrega un nou PDF que sigui vàlid.")
+            return ""
     return text
 
 
@@ -66,26 +70,33 @@ def handle_userinput(user_question):
 
 def main():
     load_dotenv()
-    st.set_page_config(page_title="Chat with multiple PDFs",
-                       page_icon=":books:")
-    st.write(css, unsafe_allow_html=True)
+    st.set_page_config(page_title="Conversa amb múltiples PDFs",page_icon=":books:")
+    css='''
+    <style>
+    [data-testid="stFileUploadDropzone"] div div::before {content:"Arrastra aquí els teus fitxers"}
+    [data-testid="stFileUploadDropzone"] div div span{display:none;}
+    [data-testid="stFileUploadDropzone"] div div::after {content:"Límit 200MB per fitxer"}
+    [data-testid="stFileUploadDropzone"] div div small{display:none;}
+    </style>
+    '''
+    st.markdown(css, unsafe_allow_html=True)
 
     if "conversation" not in st.session_state:
         st.session_state.conversation = None
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = None
 
-    st.header("Chat with multiple PDFs :books:")
-    user_question = st.text_input("Ask a question about your documents:")
+    st.header("Conversa amb múltiples PDFs :books:")
+    user_question = st.text_input("Pregunta el que vulguis sobre els teus documents:")
     if user_question:
         handle_userinput(user_question)
 
     with st.sidebar:
-        st.subheader("Your documents")
+        st.subheader("Els teus documents")
         pdf_docs = st.file_uploader(
-            "Upload your PDFs here and click on 'Process'", accept_multiple_files=True)
-        if st.button("Process"):
-            with st.spinner("Processing"):
+            "Carrega aquí els teus PDFs i fes click a 'Processar'", accept_multiple_files=True)
+        if st.button("Processar"):
+            with st.spinner("Processant"):
                 # get pdf text
                 raw_text = get_pdf_text(pdf_docs)
 
